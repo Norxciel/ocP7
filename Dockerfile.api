@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+WORKDIR /api
+
+COPY ./requirements.txt /api/requirements.txt
+RUN pip install --no-cache-dir -r /api/requirements.txt
+
+COPY ./src/utils/ /api/utils/
+COPY ./src/models/ /api/models/
+COPY ./src/api.py /api/api.py
+
+EXPOSE 80
+
+CMD ["fastapi", "run", "/api/api.py", "--port", "80"]

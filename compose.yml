@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - 127.0.0.1:8081:80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`ocP7api.norxciel.fr`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=production"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - 127.0.0.1:8082:80
+    environment:
+      - API_URL=http://api/
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`ocP7demo.norxciel.fr`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=production"
