@@ -1,6 +1,8 @@
 name: Application Tests
 on:
   push:
+      branches:
+        - main
       paths:
         - '**/*.py'
         - '**/*pipeline.yml'
