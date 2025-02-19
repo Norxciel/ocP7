@@ -20,10 +20,10 @@ jobs:
           pip install -r requirements.txt
       - name: Run API tests
         run: |
-          pytest -vW "ignore" -k api
+          python3 -m pytest -vW "ignore" -k api
       - name: Run utils tests
         run: |
-          pytest -vW "ignore" -k utils
+          python3 -m pytest -vW "ignore" -k utils
   deploy:
     runs-on: ubuntu-latest
     name: "Deploy"
