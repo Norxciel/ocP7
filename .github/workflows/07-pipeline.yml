@@ -29,9 +29,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy
     steps:
+      - name: Create .ssh Directory
+        run: mkdir -p ~/.ssh && chmod 700 ~/.ssh
       - name: Set up SSH
         run: |
-          install -m 600 /dev/null ~/.ssh/id_rsa
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
