@@ -29,8 +29,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
       - name: Set up SSH
         run: |
           install -m 600 /dev/null ~/.ssh/id_rsa
