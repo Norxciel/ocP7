@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: "Tests"
+    name: Tests
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.12
@@ -27,13 +27,20 @@ jobs:
           python3 -m pytest -vW "ignore" -k utils
   deploy:
     runs-on: ubuntu-latest
-    name: "Deploy"
+    name: Deploy
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Set up SSH
         run: |
-          mkdir -p ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_rsa
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+      - name: Connect & Pull
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORKDIR }} && git checkout main && git pull && docker compose up -d --build"
+      - name: Cleanup
+        run: |
+          rm -rf ~/.ssh
+          
