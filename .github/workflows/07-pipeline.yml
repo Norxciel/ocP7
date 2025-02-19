@@ -6,6 +6,7 @@ on:
       paths:
         - '**/*.py'
         - '**/*pipeline.yml'
+        - '**/Dockerfile.*'
       
 jobs:
   build:
