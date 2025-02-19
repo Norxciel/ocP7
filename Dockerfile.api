@@ -12,4 +12,5 @@ COPY ./src/api.py /api/api.py
 
 EXPOSE 80
 
-CMD ["fastapi", "run", "--port", "80", "/api/api.py"]
+# CMD ["fastapi", "run", "--port", "80", "/api/api.py"]
+CMD ["uvicorn", "fastapi:api", "--host", "0.0.0.0", "--port", "80"]
