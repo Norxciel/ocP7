@@ -3,6 +3,7 @@ on:
   push:
       paths:
         - '**/*.py'
+        - '**/*pipeline.yml'
       
 jobs:
   build:
