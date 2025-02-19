@@ -2,15 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /api
 
-# COPY ./requirements.txt /api/requirements.txt
+COPY ./requirements.txt /api/requirements.txt
 RUN pip install -U setuptools pip
-# RUN pip install --no-cache-dir -r /api/requirements.txt
-RUN pip install fastapi[all]
+RUN pip install --no-cache-dir -r /api/requirements.txt
 
-# COPY ./src/utils/ /api/utils/
-# COPY ./src/models/ /api/models/
-# COPY ./src/api.py /api/api.py
-COPY ./src/api_light.py /api/api.py
+COPY ./src/utils/ /api/utils/
+COPY ./src/models/ /api/models/
+COPY ./src/api.py /api/api.py
 
 EXPOSE 80
 
