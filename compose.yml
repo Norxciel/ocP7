@@ -8,10 +8,8 @@ services:
       - "traefik.http.routers.ocp7api.rule=Host(`ocP7api.norxciel.fr`)"
       - "traefik.http.routers.ocp7api.entrypoints=websecure"
       - "traefik.http.routers.ocp7api.tls.certresolver=production"
-    deploy:
-      resources:
-        limits:
-          memory: 64M
+    networks:
+      - web
 
   app:
     build:
@@ -24,3 +22,9 @@ services:
       - "traefik.http.routers.ocp7demo.rule=Host(`ocP7demo.norxciel.fr`)"
       - "traefik.http.routers.ocp7demo.entrypoints=websecure"
       - "traefik.http.routers.ocp7demo.tls.certresolver=production"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

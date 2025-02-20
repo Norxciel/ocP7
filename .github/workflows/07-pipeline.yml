@@ -42,7 +42,7 @@ jobs:
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
       - name: Connect & Pull
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.WORKDIR }} && git checkout main && git pull && docker compose up -d --build"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST_OPTI }} "cd ${{ secrets.WORKDIR }} && git checkout main && git pull && docker compose up -d --build"
       - name: Cleanup
         run: |
           rm -rf ~/.ssh
