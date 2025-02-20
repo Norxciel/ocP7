@@ -2,6 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /api
 
+RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
+RUN apt-get -y install curl
+RUN apt-get install libgomp1
+
 COPY ./requirements.txt /api/requirements.txt
 RUN pip install -U setuptools pip
 RUN pip install --no-cache-dir -r /api/requirements.txt
