@@ -39,7 +39,7 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.SSH_HOST_OPTI }}" >> ~/.ssh/known_hosts
       - name: Connect & Pull
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST_OPTI }} "cd ${{ secrets.WORKDIR }} && git checkout main && git pull && docker compose up -d --build"
