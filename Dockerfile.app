@@ -10,11 +10,10 @@ COPY ./requirements.txt /app/requirements.txt
 RUN pip install -U setuptools pip
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+COPY ./data/ /app/data
 COPY ./src/utils/ /app/src/utils/
 COPY ./src/app.py /app/src/app.py
 
 EXPOSE 80
 
-WORKDIR /app/src
-
-CMD ["streamlit", "run", "app.py", "--server.port=80", "--server.address=0.0.0.0"]
+CMD ["python3", "-m", "streamlit", "run", "./src/app.py", "--server.port=80", "--server.address=0.0.0.0"]
