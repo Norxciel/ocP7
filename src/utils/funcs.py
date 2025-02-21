@@ -29,7 +29,7 @@ from lightgbm import LGBMClassifier
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 
-import src.utils.decorators as deco
+from src.utils.custom_class import MLFExperimentTracker
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -126,37 +126,6 @@ def make_preprocess_pipeline(df):
 
     return preprocess_pipeline
 
-def mlflow_decorator(mlflow_is_on=False):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            if mlflow_is_on:
-                print("MLFlow is ON")
-                model, scores =  func(*args, **kwargs)
-            #     with mlflow.start_run(run_name="dummy_baseline"):
-            #         mlflow.set_tag("model_name", "DummyClassifier")
-            #         # mlflow.log_params(model_params)
-
-            #           model, scores =  func(*args, **kwargs)
-
-            #         for name, score in scores.get('train').items():
-            #             mlflow.log_metric(f"{name}_train", score)
-            #         for name, score in scores.get('test').items():
-            #             mlflow.log_metric(f"{name}_test", score)
-
-            #         mlflow.sklearn.log_model(model, "sk_model")
-            else:
-                print("MLFlow skipped")
-                func(*args, **kwargs)
-    
-        return wrapper
-    return decorator
-
-@mlflow_decorator()
-def test_deco(model_name="Dummy"):
-    print("oui")
-    print(model_name)
-    return 1,2,3
-
 def prepare_X_y(app_train = None, app_test = None, reduced=False):
     if (app_train is None) and (app_test is None):
         app_train, app_test = get_data_from_files()
@@ -185,16 +154,6 @@ def prepare_X_y(app_train = None, app_test = None, reduced=False):
 
 def opti_rf_hyperparams(pipeline, X_train, y_train, stratified=False, reduced=False):
     param_grid = {
-        'clf__n_estimators': [10**i for i in range(1, 5)],
-        'clf__max_depth': [2**i for i in range(5, 11)],
-        'clf__min_samples_split': [2**i for i in range(2, 7)],
-        'clf__min_samples_leaf': [2**i for i in range(0, 4)],
-        'clf__max_features': ['auto', 'sqrt', 'log2', 'None'],
-        'clf__bootstrap': [True, False],
-        'clf__criterion': ['gini', 'entropy']
-    }
-
-    param_grid = {
         'clf__n_estimators': [10**i for i in range(1, 3)],
         'clf__max_depth': [2**i for i in range(5, 8)],
         'clf__class_weight': ("balanced", None),
@@ -208,17 +167,13 @@ def opti_rf_hyperparams(pipeline, X_train, y_train, stratified=False, reduced=Fa
         pipeline,
         param_grid,
         cv=folds,
-        scoring='roc_auc',
+        scoring=make_scorer(fbeta_score, beta=5),
         verbose=10
-        # scoring=make_scorer(fbeta_score, beta=5)
     )
     grid_search.fit(X_train, y_train)
     print("Meilleures hyperparamètres : ", grid_search.best_params_)
     print(grid_search.best_score_)
     print(grid_search.best_estimator_)
-
-    with open("../optimize/rf_best_params.json" if not reduced else '../optimize/rf_best_params_reduced.json', 'w') as file:
-        json.dump(grid_search.best_params_, file, indent=4)
 
     return grid_search
 
@@ -238,7 +193,10 @@ def train_model(model, model_params, train = None, test = None, opti_hyper=False
         ])
 
         if opti_hyper:
+            print("Optimizing ON")
+            print("Start Optimizer")
             search = opti_rf_hyperparams(
+                model_pipeline,
                 X_train,
                 y_train,
                 stratified=False,
@@ -307,37 +265,124 @@ def get_scores(y_test, y_pred, y_proba, name_df_col="dataset"):
 
     return df, dict_scores
 
-# @deco.time_it
-def test_run_with_randomforest(test_top_features=False):
+def test_run_with_randomforest(test_top_features=False, tracking=True, optimize=False):
     print()
     # Read data
     train, test = prepare_data(*get_data_from_files())
     print("Data Ready")
 
-    # Setup model
-    rf_params = {
-        "n_estimators" : 150,
-        "class_weight": "balanced"
-    }
-    rf_model = RandomForestClassifier
+    tracker = MLFExperimentTracker(
+        use_mlflow=tracking,
+    )
 
-    print("Model setup !")
+    BASE_NAME = "RandomForestClassifier"
+    run_name = f"{BASE_NAME}-15features" if test_top_features else BASE_NAME
+    run_name = f"{run_name}-optimized" if optimize else BASE_NAME
 
-    print("Training...")
-    # Train model
-    model_pipeline, scores = train_model(rf_model, rf_params, train, test, reduced=test_top_features)
-    print("Training DONE!")
-    
-    print("Predicting...")
-    # Predict
-    output = predict_output(test, model_pipeline)
+    tracker.start_run(run_name=run_name)
 
-    print(pd.concat([
-        output["DECISION"].value_counts(),
-        output["DECISION"].value_counts(normalize=True),
-    ], axis=1))
+    try:
+        # Setup model
+        # best_params = {'clf__class_weight': None, 'clf__max_depth': 32, 'clf__n_estimators': 10}
+        rf_params = {
+            "n_estimators" : 10,
+            "max_depth" : 32,
+            "class_weight": None
+        }
+        rf_model = RandomForestClassifier
 
-    return model_pipeline, scores, output
+        tracker.log_params(rf_params)
+
+        print("Model setup !")
+
+        print("Training...")
+        # Train model
+        model_pipeline, scores = train_model(rf_model, rf_params, train, test, reduced=test_top_features, opti_hyper=optimize)
+        print("Training DONE!")
+
+        dict_score_train, dict_score_test = scores.values()
+
+        for name, score in dict_score_train.items():
+            mlflow.log_metric(f"{name}_train", score)
+        for name, score in dict_score_test.items():
+            mlflow.log_metric(f"{name}_test", score)
+
+        tracker.log_model(model_pipeline, "RandomForestClassifier" if not test_top_features else "RandomForestClassifier-15features")
+
+        # Predict
+        print("Predicting...")
+        output = predict_output(test, model_pipeline)
+
+        print(pd.concat([
+            output["DECISION"].value_counts(),
+            output["DECISION"].value_counts(normalize=True),
+        ], axis=1))
+
+        return model_pipeline, scores, output
+    except Exception as err:
+        print(err)
+    finally:
+        tracker.end_run()
+
+def test_run_with_lgbm(test_top_features=False, tracking=True, optimize=False):
+    print()
+    # Read data
+    train, test = prepare_data(*get_data_from_files())
+    print("Data Ready")
+
+    tracker = MLFExperimentTracker(
+        use_mlflow=tracking,
+    )
+
+    BASE_NAME = "LGBM"
+    run_name = f"{BASE_NAME}-15features" if test_top_features else BASE_NAME
+    run_name = f"{run_name}-optimized" if optimize else BASE_NAME
+
+    tracker.start_run(run_name=run_name)
+
+    try:
+        # Setup model
+        lgbm_params = {
+            "boosting_type" : "gbdt",
+            "class_weight" : "balanced",
+            "learning_rate" : 0.02,
+            "n_estimators" : 10000,
+            "objective" : "binary",
+        }
+        lgbm_model = LGBMClassifier
+
+        tracker.log_params(lgbm_params)
+
+        print("Model setup !")
+
+        print("Training...")
+        # Train model
+        model_pipeline, scores = train_model(lgbm_model, lgbm_params, train, test, reduced=test_top_features, opti_hyper=optimize)
+        print("Training DONE!")
+
+        dict_score_train, dict_score_test = scores.values()
+
+        for name, score in dict_score_train.items():
+            mlflow.log_metric(f"{name}_train", score)
+        for name, score in dict_score_test.items():
+            mlflow.log_metric(f"{name}_test", score)
+
+        tracker.log_model(model_pipeline, "LGBM" if not test_top_features else "LGBM-15features")
+
+        # Predict
+        print("Predicting...")
+        output = predict_output(test, model_pipeline)
+
+        print(pd.concat([
+            output["DECISION"].value_counts(),
+            output["DECISION"].value_counts(normalize=True),
+        ], axis=1))
+
+        return model_pipeline, scores, output
+    except Exception as err:
+        print(err)
+    finally:
+        tracker.end_run()
 
 def select_top_features(df, with_target=True):
     COLS = [
