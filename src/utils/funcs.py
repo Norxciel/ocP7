@@ -45,6 +45,33 @@ def get_data_from_files(train_filepath = "data/application_train.csv", test_file
 
     return app_train, app_test
 
+def get_data_from_files_test(test_filepath = "data/application_test.csv"):
+    if not os.path.exists(test_filepath):
+        raise FileNotFoundError(f"Testing file not found ({test_filepath})")
+
+    app_test = pd.read_csv(test_filepath)
+
+    return app_test
+
+def prepare_data_test(df_test):
+    # Clean anomalies
+    clean_anomalies(
+        df_test,
+        col='DAYS_EMPLOYED',
+        anom=365243,
+        value=np.nan
+    )
+
+    df_test = df_test[df_test['CODE_GENDER'] != 'XNA']
+
+    # Group reccuring object
+    df_test = group_organization(df_test)
+
+    # Add Feature Engineering
+    df_test = feature_engineering(df_test)
+
+    return df_test
+
 def clean_anomalies(df, col, anom, value=np.nan):
     if col not in df:
         raise KeyError(f"{col} not in DataFrame columns")
@@ -283,7 +310,6 @@ def test_run_with_randomforest(test_top_features=False, tracking=True, optimize=
 
     try:
         # Setup model
-        # best_params = {'clf__class_weight': None, 'clf__max_depth': 32, 'clf__n_estimators': 10}
         rf_params = {
             "n_estimators" : 10,
             "max_depth" : 32,
